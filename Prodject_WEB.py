@@ -7,21 +7,22 @@ app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO)
 
-# создаём словарь, в котором ключ — название города, а значение — массив,
-# где перечислены id картинок, которые мы записали в прошлом пункте.
-cities = {
-    'москва': [
-        '1540737/daa6e420d33102bf6947', '213044/7df73ae4cc715175059e'
-    ],
-    'нью-йорк': [
-        '1652229/728d5c86707054d4745f', '1030494/aca7ed7acefde2606bdc'
-    ],
-    'париж': [
-        '1652229/f77136c2364eb90a3ea8', '3450494/aca7ed7acefde22341bdc'
-    ]
+a = 0
+narod = 10
+chin = 10
+cash = 0
+day = 1
+end = 0
+win = 1
+task = []
+
+ends = {
+    1: '965417/ab0a9f4eee5f8bba1b01',
+    2: '1540737/115a97c58d76aa7991fe',
+    3: '1652229/87124d040a501b472c16'
 }
 
-# создаём словарь, где для каждого пользователя мы будем хранить его имя
+days = [['Сын прокурора может сесть в тюрьму. За его освобождение вам хотят дать взятку в размере 50000 дублей. Возьмете ли вы деньги?', ['Да', 'Нет'], [[-1, 2, 500000], [1, -7, 0]]]]
 sessionStorage = {}
 
 
@@ -40,81 +41,112 @@ def main():
     return json.dumps(response)
 
 
+
 def handle_dialog(res, req):
+    global a, end, narod, chin, cash, day, win, task
     user_id = req['session']['user_id']
 
-    # если пользователь новый, то просим его представиться.
     if req['session']['new']:
+        a = 0
+        narod = 10
+        chin = 10
+        cash = 0
+        day = 1
+        end = 0
+        win = 1
+        task = []
         res['response']['text'] = 'Привет! Назови свое имя!'
-        # созда\м словарь в который в будущем положим имя пользователя
         sessionStorage[user_id] = {
             'first_name': None
         }
         return
 
-    # если пользователь не новый, то попадаем сюда.
-    # если поле имени пустое, то это говорит о том,
-    # что пользователь ещё не представился.
     if sessionStorage[user_id]['first_name'] is None:
-        # в последнем его сообщение ищем имя.
         first_name = get_first_name(req)
-        # если не нашли, то сообщаем пользователю что не расслышали.
         if first_name is None:
             res['response']['text'] = \
                 'Не расслышала имя. Повтори, пожалуйста!'
-        # если нашли, то приветствуем пользователя.
-        # И спрашиваем какой город он хочет увидеть.
         else:
             sessionStorage[user_id]['first_name'] = first_name
             res['response'][
                 'text'] = 'Приятно познакомиться, ' + first_name.title() \
-                          + '. Я - Алиса. Какой город хочешь увидеть?'
-            # получаем варианты buttons из ключей нашего словаря cities
+                          + '. Я - Алиса. Давай сыграем в игру!'
             res['response']['buttons'] = [
                 {
-                    'title': city.title(),
+                    'title': 'Давай',
                     'hide': True
-                } for city in cities
+                }
             ]
-    # если мы знакомы с пользователем и он нам что-то написал,
-    # то это говорит о том, что он уже говорит о городе, что хочет увидеть.
     else:
-        # ищем город в сообщение от пользователя
-        city = get_city(req)
-        # если этот город среди известных нам,
-        # то показываем его (выбираем одну из двух картинок случайно)
-        if city in cities:
-            res['response']['card'] = {}
-            res['response']['card']['type'] = 'BigImage'
-            res['response']['card']['title'] = 'Этот город я знаю.'
-            res['response']['card']['image_id'] = random.choice(
-                cities[city])
-            res['response']['text'] = 'Я угадал!'
-        # если не нашел, то отвечает пользователю
-        # 'Первый раз слышу об этом городе.'
+        if a == 0:
+            res['response']['text'] = 'Вы - президент Фоссии, которую уже давно терроризируют продажные чиновники. Настал последний месяц вашего последнего срока на посту, и вы очень хотите бежать из страны. Ваша задача - заработать 1000000 дублей на билеты из Фоссии. Для этого вы 30 дней принимаете по решению, которое влияет на один из 2 параметров: отношение народа и отношение чиновников. Однако вас казнят если один из параметров превысит 20 или упадет ниже 0. Вы готовы?'
+            res['response']['buttons'] = [
+                {
+                    'title': 'Да',
+                    'hide': True
+                }
+            ]
+            a = 1
         else:
-            res['response']['text'] = \
-                'Первый раз слышу об этом городе. Попробуй еще разок!'
+            if narod < 0 or chin < 0 or narod > 20 or chin > 20:
+                win = 0
+            if win:
+                if day <= 2:
+                    if not end:
+                        task = random.choice(days)
+                        end = 1
+                        res['response']['text'] = 'День {}: '.format(day) + task[0] + ' (Ваши показатели сейчас: {}, {}, {})'.format(narod, chin, cash)
+                        res['response']['buttons'] = [
+                        {
+                            'title': qqq,
+                            'hide': True
+                        } for qqq in task[1]
+                        ]
+                    else:
+                        end = 0
+                        day += 1
+                        if req['request']['command'] == task[1][0]:
+                            sp = task[2][0]
+                        else:
+                            sp = task[2][1]
+                        narod += sp[0]
+                        chin += sp[1]
+                        cash += sp[2]
+                        res['response']['text'] = 'Теперь ваши показатели такие: отношение народа: {}, отношение чиновников: {}, деньги: {}'.format(narod, chin, cash)
+                        res['response']['buttons'] = [
+                        {
+                            'title': 'Новый день',
+                            'hide': True
+                        }
+                ]
+                else:
+                    if cash >= 1000000:
+                        res['response']['card'] = {}
+                        res['response']['card']['type'] = 'BigImage'
+                        res['response']['card']['image_id'] = ends[3]
+                        res['response']['card']['title'] = 'Вы выиграли, и смогли бежать в Геликобританию, чтобы начать там новую жизнь. Игра окончена.'
+                        res['response']['text'] = 'Игра окончена.'
+                        res['response']['end_session'] = True
+                    else:
+                        res['response']['card'] = {}
+                        res['response']['card']['type'] = 'BigImage'
+                        res['response']['card']['image_id'] = ends[2]
+                        res['response']['card']['title'] = 'К сожалению, вы не смогли накопить денег, и вы будете жить в нищете до конца своих дней. Игра окончена.'
+                        res['response']['text'] = 'Игра окончена.'
+                        res['response']['end_session'] = True
+            else:
+                res['response']['card'] = {}
+                res['response']['card']['type'] = 'BigImage'
+                res['response']['card']['image_id'] = ends[1]
+                res['response']['card']['title'] = 'В стране произошли массовые беспорядки, и вас осудили на 30 лет за коррупционые схемы. Игра окончена.'
+                res['response']['text'] = 'Игра окончена.'
+                res['response']['end_session'] = True
 
-
-def get_city(req):
-    # перебираем именованные сущности
-    for entity in req['request']['nlu']['entities']:
-        # если тип YANDEX.GEO то пытаемся получить город(city),
-        # если нет то возвращаем None
-        if entity['type'] == 'YANDEX.GEO':
-            # возвращаем None, если не нашли сущности с типом YANDEX.GEO
-            return entity['value'].get('city', None)
 
 
 def get_first_name(req):
-    # перебираем сущности
     for entity in req['request']['nlu']['entities']:
-        # находим сущность с типом 'YANDEX.FIO'
         if entity['type'] == 'YANDEX.FIO':
-            # Если есть сущность с ключом 'first_name',
-            # то возвращаем ее значение.
-            # Во всех остальных случаях возвращаем None.
             return entity['value'].get('first_name', None)
 
 
